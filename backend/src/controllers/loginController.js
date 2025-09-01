@@ -30,11 +30,11 @@ loginController.login = async (req, res) => {
     // 1. Admin
     // Varifiquemos si quien está ingresando es Admin
     if (
-      email === config.emailAdmin.email &&
+      email === config.emailAdmin.email && 
       password === config.emailAdmin.password
     ) {
-      userType = "Admin";
-      userFound = { _id: "Admin" };
+      userType = "admin";
+      userFound = { _id: "admin" };
     } else {
       // 2. Empleado
       userFound = await EmployeesModel.findOne({ email });
@@ -53,7 +53,7 @@ loginController.login = async (req, res) => {
     }
 
     //Primero, determino si el usuario está bloqueado o no
-    if (userType !== "Admin") {
+    if (userType !== "admin") {
       if (userFound.lockTime > Date.now()) {
         const minutosRestantes = Math.ceil(
           userFound.lockTime - Date.now() / 60000
@@ -65,7 +65,7 @@ loginController.login = async (req, res) => {
     }
 
     // Si no es administrador, validamos la contraseña
-    if (userType !== "Admin") {
+    if (userType !== "admin") {
       const isMatch = await bcryptjs.compare(password, userFound.password);
       if (!isMatch) {
         //Si la contraseña es incorrecta
@@ -95,15 +95,19 @@ loginController.login = async (req, res) => {
       //2- Clave secreta
       config.JWT.secret,
       //3- Cuando expira
-      { expiresIn: config.JWT.expiresIn }
+      { expiresIn: config.JWT.expiresIn },
+      //4- Función flecha
+      (err, token) => {
+        if (err) console.log("error " + err)
+        res.cookie("authToken", token, {
+          maxAge: 24 * 60 * 60 * 1000,
+          path: "/",
+          sameSite: "lax",
+        });
+        res.json({ message: "login successful" });
+      }
     );
-
-    res.cookie("authToken", token, {
-      maxAge: 24 * 60 * 60 * 1000,
-      path: "/",
-      sameSite: "lax",
-    });
-    res.json({ message: "login successful" });
+   
   } catch (error) {
     console.log(error);
   }
